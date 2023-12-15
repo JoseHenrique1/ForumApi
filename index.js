@@ -99,6 +99,15 @@ app.post('/comentarios',async (req, res) => {
     res.json({msg:"success"});
 })
 
+app.post('/respostas',async (req, res) => {
+    await Resposta.create({
+        mensagem: req.body.mensagem,
+        usuarioId: Number(req.body.usuarioId),
+        comentarioId: Number(req.body.comentarioId)
+    })
+    res.json({msg:"success"});
+})
+
 
 app.listen(port, () => {
   console.log(`Api rodando ${port}`);
