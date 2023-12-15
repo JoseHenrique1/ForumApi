@@ -88,7 +88,16 @@ app.get('/interacoes/:temaId',async (req, res) => {
     })
        
     res.json(comentarios);
-})  
+}) 
+
+app.post('/comentarios',async (req, res) => {
+    await Comentario.create({
+        mensagem: req.body.mensagem,
+        usuarioId: Number(req.body.usuarioId),
+        temaId: Number(req.body.temaId)
+    })
+    res.json({msg:"success"});
+})
 
 
 app.listen(port, () => {
