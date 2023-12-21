@@ -32,7 +32,7 @@ app.post('/cadastro',async (req, res) => {
     await Usuario.create({
         nome: nome,
         email: email,
-        senha: senha,
+        senha: senhya,
     })
     
     res.json({msg:"success"});
@@ -41,16 +41,17 @@ app.post('/cadastro',async (req, res) => {
 app.post('/autenticacao',async (req, res) => { //checar se estão vazios, DEPOISchecar se o email e senha é de algum usuario
     let email = req.body.email;
     let senha = req.body.senha;
-    let usuario = Usuario.findOne({
+    let usuario = await Usuario.findOne({
         where: {
             email: email,
             senha: senha
         }
     })
-    usuario = JSON.parse(JSON.stringify(usuario, null, 2));
-
-    //checar se é null ou nao
-    res.json({menssage: 'success', id: usuario.id})
+    if (usuario!==null) {
+        usuario = JSON.parse(JSON.stringify(usuario, null, 2));
+        res.json({msg: 'success', id: usuario.id})
+    }
+    else {res.json({msg: 'error'})}    
 })
 
 app.get('/temas',async (req, res) => {
