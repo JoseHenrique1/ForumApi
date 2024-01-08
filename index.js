@@ -32,7 +32,7 @@ app.post('/cadastro',async (req, res) => {
     await Usuario.create({
         nome: nome,
         email: email,
-        senha: senhya,
+        senha: senha,
     })
     
     res.json({msg:"success"});
@@ -49,7 +49,7 @@ app.post('/autenticacao',async (req, res) => { //checar se estão vazios, DEPOIS
     })
     if (usuario!==null) {
         usuario = JSON.parse(JSON.stringify(usuario, null, 2));
-        res.json({msg: 'success', id: usuario.id})
+        res.json({msg: 'success', user: usuario})
     }
     else {res.json({msg: 'error'})}    
 })
