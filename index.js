@@ -1,3 +1,4 @@
+import 'dotenv/config.js'
 import express from 'express';
 import cors from 'cors';
 
@@ -18,7 +19,7 @@ sequelize.sync();
 
 
 const app = express();
-const port = 3000 || 8000;
+const port = Number(process.env.PORT);
 //habilita a api a ser reconhecida como segura pelo navegador
 app.use(cors());
 //poder pegar o body das requisicoes
@@ -119,5 +120,5 @@ app.post('/respostas',async (req, res) => {
 
 
 app.listen(port, () => {
-  console.log(`Api rodando ${port}`);
+  console.log(`Api rodando http://localhost:${port}/`);
 })
