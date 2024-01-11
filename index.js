@@ -59,6 +59,14 @@ app.get('/temas',async (req, res) => {
     res.send(temas);
 })
 
+app.get('/temas/:temaId',async (req, res) => {
+    const tema = await Tema.findOne(
+        {where: {id:req.params.temaId}
+    });
+    
+    res.send(tema?tema:{});
+})
+
 app.post('/temas',async (req, res) => {
     await Tema.create({
         conteudo: req.body.conteudo,
@@ -76,19 +84,19 @@ app.get('/interacoes/:temaId',async (req, res) => {
     });
     comentarios = JSON.parse(JSON.stringify(comentarios, null, 2));
 
-    let ids_comentarios = await comentarios.map((comentario)=>comentario.id);
-    let promessas = ids_comentarios.map((item)=>(Resposta.findAll({
-        where:{comentarioId:item}
+    let ids_comentarios =  comentarios.map((comentario)=>comentario.id);
+    let respostas_promise = ids_comentarios.map((id_comentario)=>(Resposta.findAll({
+        where:{comentarioId:id_comentario}
     })))
-    const respostas = await Promise.all(promessas)
+    const respostas = await Promise.all(respostas_promise)
     .then(data=>JSON.stringify(data, null, 2))
     .then(data=>JSON.parse(data));
 
-    comentarios = await comentarios.map((item, index)=>{
+    let interacoes =  comentarios.map((item, index)=>{
         return {...item, respostas: respostas[index]}
     })
        
-    res.json(comentarios);
+    res.json(interacoes);
 }) 
 
 app.post('/comentarios',async (req, res) => {
