@@ -30,13 +30,23 @@ app.post('/cadastro',async (req, res) => {
     let nome = req.body.nome;
     let email = req.body.email;
     let senha = req.body.senha;
-    await Usuario.create({
-        nome: nome,
-        email: email,
-        senha: senha,
+    let usuario = await Usuario.findOne({
+        where: {
+            email: email
+        }
     })
-    
-    res.json({msg:"success"});
+    if (!usuario) {
+        await Usuario.create({
+            nome: nome,
+            email: email,
+            senha: senha,
+        })
+        
+        res.json({msg:"success"});
+    }
+    else {
+        res.json({msg:"error"});
+    }
 })
 
 app.post('/autenticacao',async (req, res) => { //checar se estão vazios, DEPOISchecar se o email e senha é de algum usuario
