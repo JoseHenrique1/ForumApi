@@ -111,21 +111,23 @@ app.get('/interacoes/:temaId',async (req, res) => {
 }) 
 
 app.post('/comentarios',async (req, res) => {
-    await Comentario.create({
+    let comentario = await Comentario.create({
         mensagem: req.body.mensagem,
         usuarioId: Number(req.body.usuarioId),
         temaId: Number(req.body.temaId)
     })
-    res.json({msg:"success"});
+    comentario =  JSON.parse(JSON.stringify(comentario, null, 2));
+    res.json({msg:"success", comentario});
 })
 
 app.post('/respostas',async (req, res) => {
-    await Resposta.create({
+    let resposta = await Resposta.create({
         mensagem: req.body.mensagem,
         usuarioId: Number(req.body.usuarioId),
         comentarioId: Number(req.body.comentarioId)
     })
-    res.json({msg:"success"});
+    resposta =  JSON.parse(JSON.stringify(resposta, null, 2));
+    res.json({msg:"success", resposta});
 })
 
 
