@@ -110,6 +110,43 @@ app.get('/interacoes/:temaId',async (req, res) => {
     res.json(interacoes);
 }) 
 
+app.get('/comentarios',async (req, res) => {
+    if (req.query.temaId && req.query.pageNumber) {
+        let temaId = req.query.temaId;
+        let pageNumber = Number(req.query.pageNumber);
+
+        let comentarios = await Comentario.findAll({
+            where: {temaId},
+            offset: pageNumber*5,
+            limit: 5
+        });
+
+        comentarios = JSON.parse(JSON.stringify(comentarios, null, 2));
+
+        let ids_usuarios = comentarios.map(item=>item.usuarioId);
+
+        let usuarios_promises = ids_usuarios.map((id_usuario)=>{
+            return Usuario.findOne({where:{id:id_usuario}})
+        })
+
+        let usuarios =await Promise.all(usuarios_promises)
+        .then(data=>JSON.stringify(data, null, 2))
+        .then(data=>JSON.parse(data));
+
+        comentarios = comentarios.map((comentario, index)=>{
+            return {...comentario, usuario: usuarios[index]}
+        })
+
+        res.json({msg: "success", comentarios});
+    }
+    else {
+        let comentarios = await Comentario.findAll();
+        comentarios = JSON.parse(JSON.stringify(comentarios, null, 2));
+        res.json({msg: "success", comentarios});
+    }
+    
+})
+
 app.post('/comentarios',async (req, res) => {
     let comentario = await Comentario.create({
         mensagem: req.body.mensagem,
