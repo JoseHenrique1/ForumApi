@@ -86,29 +86,6 @@ app.post('/temas',async (req, res) => {
     res.json({msg:"success"});
 })
 
-app.get('/interacoes/:temaId',async (req, res) => {
-    let tema_id_req = Number(req.params.temaId);
-    let comentarios = await Comentario.findAll({
-        where: {
-            temaId: tema_id_req, 
-        }
-    });
-    comentarios = JSON.parse(JSON.stringify(comentarios, null, 2));
-
-    let ids_comentarios =  comentarios.map((comentario)=>comentario.id);
-    let respostas_promise = ids_comentarios.map((id_comentario)=>(Resposta.findAll({
-        where:{comentarioId:id_comentario}
-    })))
-    const respostas = await Promise.all(respostas_promise)
-    .then(data=>JSON.stringify(data, null, 2))
-    .then(data=>JSON.parse(data));
-
-    let interacoes =  comentarios.map((item, index)=>{
-        return {...item, respostas: respostas[index]}
-    })
-       
-    res.json(interacoes);
-}) 
 
 app.get('/comentarios',async (req, res) => {
     if (req.query.temaId && req.query.pageNumber) {
@@ -155,6 +132,43 @@ app.post('/comentarios',async (req, res) => {
     })
     comentario =  JSON.parse(JSON.stringify(comentario, null, 2));
     res.json({msg:"success", comentario});
+})
+
+app.get('/respostas',async (req, res) => {
+    if (req.query.comentarioId && req.query.pageNumber) {
+        let comentarioId = req.query.comentarioId;
+        let pageNumber = Number(req.query.pageNumber);
+
+        let respostas = await Resposta.findAll({
+            where: {comentarioId},
+            offset: pageNumber*5,
+            limit: 5
+        });
+
+        respostas = JSON.parse(JSON.stringify(respostas, null, 2));
+
+        let ids_usuarios = respostas.map(item=>item.usuarioId);
+
+        let usuarios_promises = ids_usuarios.map((id_usuario)=>{
+            return Usuario.findOne({where:{id:id_usuario}})
+        })
+
+        let usuarios = await Promise.all(usuarios_promises)
+        .then(data=>JSON.stringify(data, null, 2))
+        .then(data=>JSON.parse(data));
+
+        respostas = respostas.map((comentario, index)=>{
+            return {...comentario, usuario: usuarios[index]}
+        })
+
+        res.json({msg: "success", respostas});
+    }
+    else {
+        let respostas = await Resposta.findAll();
+        respostas = JSON.parse(JSON.stringify(respostas, null, 2));
+        res.json({msg: "success", respostas});
+    }
+    
 })
 
 app.post('/respostas',async (req, res) => {
