@@ -2,6 +2,8 @@ import 'dotenv/config.js'
 import express from 'express';
 import cors from 'cors';
 
+import { Op } from 'sequelize';
+
 //Database e Models
 import sequelize from './database/db.js';
 import Usuario from './models/usuario.js';
@@ -26,7 +28,7 @@ app.use(cors());
 app.use(express.json());
 
  
-app.post('/cadastro',async (req, res) => {
+app.post('/usuarios',async (req, res) => {
     let nome = req.body.nome;
     let email = req.body.email;
     let senha = req.body.senha;
@@ -49,20 +51,27 @@ app.post('/cadastro',async (req, res) => {
     }
 })
 
-app.post('/autenticacao',async (req, res) => { //checar se estão vazios, DEPOISchecar se o email e senha é de algum usuario
-    let email = req.body.email;
-    let senha = req.body.senha;
-    let usuario = await Usuario.findOne({
-        where: {
-            email: email,
-            senha: senha
+app.get('/usuarios',async (req, res) => { //checar se estão vazios, DEPOISchecar se o email e senha é de algum usuario
+    if (req.query.email && req.query.senha) {
+        let email = req.query.email;
+        let senha = req.query.senha;
+        let usuario = await Usuario.findOne({
+            where: {
+                email: email,
+                senha: senha
+            }
+        })
+        if (usuario!==null) {
+            usuario = JSON.parse(JSON.stringify(usuario, null, 2));
+            res.json({msg: 'success', user: usuario})
         }
-    })
-    if (usuario!==null) {
-        usuario = JSON.parse(JSON.stringify(usuario, null, 2));
-        res.json({msg: 'success', user: usuario})
+        else {res.json({msg: 'error'})}  
     }
-    else {res.json({msg: 'error'})}    
+    else {
+        let usuarios = await Usuario.findAll();
+        res.json({msg: 'success', usuarios})
+    }
+       
 })
 
 app.get('/temas',async (req, res) => {
@@ -91,16 +100,22 @@ app.get('/comentarios',async (req, res) => {
     if (req.query.temaId && req.query.pageNumber) {
         let temaId = req.query.temaId;
         let pageNumber = Number(req.query.pageNumber);
+        let usuarioId = req.query.usuarioId
 
-        let comentarios = await Comentario.findAll({
-            where: {temaId},
+        let comentariosPublicos = await Comentario.findAll({
+            where: {
+                temaId,
+                usuarioId: {
+                    [Op.ne]: usuarioId
+                }
+            },
             offset: pageNumber*5,
             limit: 5
         });
 
-        comentarios = JSON.parse(JSON.stringify(comentarios, null, 2));
+        comentariosPublicos = JSON.parse(JSON.stringify(comentariosPublicos, null, 2));
 
-        let ids_usuarios = comentarios.map(item=>item.usuarioId);
+        let ids_usuarios = comentariosPublicos.map(item=>item.usuarioId);
 
         let usuarios_promises = ids_usuarios.map((id_usuario)=>{
             return Usuario.findOne({where:{id:id_usuario}})
@@ -110,11 +125,29 @@ app.get('/comentarios',async (req, res) => {
         .then(data=>JSON.stringify(data, null, 2))
         .then(data=>JSON.parse(data));
 
-        comentarios = comentarios.map((comentario, index)=>{
+        comentariosPublicos = comentariosPublicos.map((comentario, index)=>{
             return {...comentario, usuario: usuarios[index]}
         })
 
-        res.json({msg: "success", comentarios});
+        //Comentarios pessoais (usuario autenticado no momento)
+
+        let comentariosPessoais = await Comentario.findAll({
+            where: {
+                temaId,
+                usuarioId: usuarioId
+            },
+        });
+
+        comentariosPessoais = JSON.parse(JSON.stringify(comentariosPessoais, null, 2));
+
+        let usuario = await Usuario.findOne({where:{id:usuarioId}});
+
+        comentariosPessoais = comentariosPessoais.map((comentario)=>{
+            return {...comentario, usuario}
+        })
+
+
+        res.json({msg: "success", comentariosPublicos, comentariosPessoais});
     }
     else {
         let comentarios = await Comentario.findAll();
@@ -138,16 +171,22 @@ app.get('/respostas',async (req, res) => {
     if (req.query.comentarioId && req.query.pageNumber) {
         let comentarioId = req.query.comentarioId;
         let pageNumber = Number(req.query.pageNumber);
+        let usuarioId = req.query.usuarioId;
 
-        let respostas = await Resposta.findAll({
-            where: {comentarioId},
+        let respostasPublicas = await Resposta.findAll({
+            where: {
+                comentarioId,
+                usuarioId: {
+                    [Op.ne]: usuarioId
+                }
+            },
             offset: pageNumber*5,
             limit: 5
         });
 
-        respostas = JSON.parse(JSON.stringify(respostas, null, 2));
+        respostasPublicas = JSON.parse(JSON.stringify(respostasPublicas, null, 2));
 
-        let ids_usuarios = respostas.map(item=>item.usuarioId);
+        let ids_usuarios = respostasPublicas.map(item=>item.usuarioId);
 
         let usuarios_promises = ids_usuarios.map((id_usuario)=>{
             return Usuario.findOne({where:{id:id_usuario}})
@@ -157,11 +196,28 @@ app.get('/respostas',async (req, res) => {
         .then(data=>JSON.stringify(data, null, 2))
         .then(data=>JSON.parse(data));
 
-        respostas = respostas.map((comentario, index)=>{
+        respostasPublicas = respostasPublicas.map((comentario, index)=>{
             return {...comentario, usuario: usuarios[index]}
         })
 
-        res.json({msg: "success", respostas});
+        //Respostas pessoais (usuario autenticado no momento)
+
+        let respostasPessoais = await Resposta.findAll({
+            where: {
+                comentarioId,
+                usuarioId: usuarioId
+            },
+        });
+
+        respostasPessoais = JSON.parse(JSON.stringify(respostasPessoais, null, 2));
+
+        let usuario = await Usuario.findOne({where:{id:usuarioId}});
+
+        respostasPessoais = respostasPessoais.map((resposta)=>{
+            return {...resposta, usuario}
+        })
+
+        res.json({msg: "success", respostasPublicas, respostasPessoais});
     }
     else {
         let respostas = await Resposta.findAll();
