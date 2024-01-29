@@ -2,8 +2,6 @@ import 'dotenv/config.js'
 import express from 'express';
 import cors from 'cors';
 
-import { Op } from 'sequelize';
-
 //Database e Models
 import sequelize from './database/db.js';
 import Usuario from './models/usuario.js';
@@ -21,7 +19,7 @@ sequelize.sync();
 
 
 const app = express();
-const port = Number(process.env.PORT);
+const port = Number(process.env.PORT) || 3000;
 //habilita a api a ser reconhecida como segura pelo navegador
 app.use(cors());
 //poder pegar o body das requisicoes
@@ -51,7 +49,7 @@ app.post('/usuarios',async (req, res) => {
     }
 })
 
-app.get('/usuarios',async (req, res) => { //checar se estão vazios, DEPOISchecar se o email e senha é de algum usuario
+app.get('/usuarios',async (req, res) => { 
     if (req.query.email && req.query.senha) {
         let email = req.query.email;
         let senha = req.query.senha;
@@ -88,34 +86,31 @@ app.get('/temas/:temaId',async (req, res) => {
 })
 
 app.post('/temas',async (req, res) => {
-    await Tema.create({
+    let tema = await Tema.create({
         conteudo: req.body.conteudo,
         usuarioId: Number(req.body.usuarioId)
-    })
-    res.json({msg:"success"});
+    });
+    console.log(tema)
+    res.json({msg:"success", tema});
 })
 
 
 app.get('/comentarios',async (req, res) => {
-    if (req.query.temaId && req.query.pageNumber) {
+    if (req.query.temaId) {
         let temaId = req.query.temaId;
-        let pageNumber = Number(req.query.pageNumber);
-        let usuarioId = req.query.usuarioId
 
-        let comentariosPublicos = await Comentario.findAll({
+        let comentarios = await Comentario.findAll({
             where: {
                 temaId,
-                usuarioId: {
-                    [Op.ne]: usuarioId
-                }
             },
-            offset: pageNumber*5,
-            limit: 5
+            order: [
+                ['id','DESC']
+            ]
         });
 
-        comentariosPublicos = JSON.parse(JSON.stringify(comentariosPublicos, null, 2));
+        comentarios = JSON.parse(JSON.stringify(comentarios, null, 2));
 
-        let ids_usuarios = comentariosPublicos.map(item=>item.usuarioId);
+        let ids_usuarios = comentarios.map(item=>item.usuarioId);
 
         let usuarios_promises = ids_usuarios.map((id_usuario)=>{
             return Usuario.findOne({where:{id:id_usuario}})
@@ -125,29 +120,11 @@ app.get('/comentarios',async (req, res) => {
         .then(data=>JSON.stringify(data, null, 2))
         .then(data=>JSON.parse(data));
 
-        comentariosPublicos = comentariosPublicos.map((comentario, index)=>{
+        comentarios = comentarios.map((comentario, index)=>{
             return {...comentario, usuario: usuarios[index]}
         })
 
-        //Comentarios pessoais (usuario autenticado no momento)
-
-        let comentariosPessoais = await Comentario.findAll({
-            where: {
-                temaId,
-                usuarioId: usuarioId
-            },
-        });
-
-        comentariosPessoais = JSON.parse(JSON.stringify(comentariosPessoais, null, 2));
-
-        let usuario = await Usuario.findOne({where:{id:usuarioId}});
-
-        comentariosPessoais = comentariosPessoais.map((comentario)=>{
-            return {...comentario, usuario}
-        })
-
-
-        res.json({msg: "success", comentariosPublicos, comentariosPessoais});
+        res.json({msg: "success", comentarios});
     }
     else {
         let comentarios = await Comentario.findAll();
@@ -168,25 +145,21 @@ app.post('/comentarios',async (req, res) => {
 })
 
 app.get('/respostas',async (req, res) => {
-    if (req.query.comentarioId && req.query.pageNumber) {
+    if (req.query.comentarioId) {
         let comentarioId = req.query.comentarioId;
-        let pageNumber = Number(req.query.pageNumber);
-        let usuarioId = req.query.usuarioId;
 
-        let respostasPublicas = await Resposta.findAll({
+        let respostas = await Resposta.findAll({
             where: {
                 comentarioId,
-                usuarioId: {
-                    [Op.ne]: usuarioId
-                }
             },
-            offset: pageNumber*5,
-            limit: 5
+            order: [
+                ['id','DESC']
+            ]
         });
 
-        respostasPublicas = JSON.parse(JSON.stringify(respostasPublicas, null, 2));
+        respostas = JSON.parse(JSON.stringify(respostas, null, 2));
 
-        let ids_usuarios = respostasPublicas.map(item=>item.usuarioId);
+        let ids_usuarios = respostas.map(item=>item.usuarioId);
 
         let usuarios_promises = ids_usuarios.map((id_usuario)=>{
             return Usuario.findOne({where:{id:id_usuario}})
@@ -196,28 +169,11 @@ app.get('/respostas',async (req, res) => {
         .then(data=>JSON.stringify(data, null, 2))
         .then(data=>JSON.parse(data));
 
-        respostasPublicas = respostasPublicas.map((comentario, index)=>{
+        respostas = respostas.map((comentario, index)=>{
             return {...comentario, usuario: usuarios[index]}
         })
 
-        //Respostas pessoais (usuario autenticado no momento)
-
-        let respostasPessoais = await Resposta.findAll({
-            where: {
-                comentarioId,
-                usuarioId: usuarioId
-            },
-        });
-
-        respostasPessoais = JSON.parse(JSON.stringify(respostasPessoais, null, 2));
-
-        let usuario = await Usuario.findOne({where:{id:usuarioId}});
-
-        respostasPessoais = respostasPessoais.map((resposta)=>{
-            return {...resposta, usuario}
-        })
-
-        res.json({msg: "success", respostasPublicas, respostasPessoais});
+        res.json({msg: "success", respostas});
     }
     else {
         let respostas = await Resposta.findAll();
