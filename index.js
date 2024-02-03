@@ -1,6 +1,8 @@
 import 'dotenv/config.js'
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'node:http';
+import { Server } from 'socket.io';
 
 //Database e Models
 import sequelize from './database/db.js';
@@ -25,6 +27,31 @@ app.use(cors());
 //poder pegar o body das requisicoes
 app.use(express.json());
 
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*', 
+    },
+  });
+  // origin: 'http://localhost:3001',
+
+io.on('connection', (socket) => {
+    console.log('a user connected');
+    socket.on('temas', (data) => {
+      console.log('message: \n' + JSON.stringify(data));
+      socket.broadcast.emit('tema'+data.temaId, data)
+    });
+
+    socket.on('comentarios', (data) => {
+        console.log('comentario: \n' + JSON.stringify(data));
+        socket.broadcast.emit('comentario'+data.comentarioId, data)
+      });
+  
+    socket.on("disconnect", (reason) => {
+      console.log('a user disconnected')
+      console.log(reason)
+    });
+});
  
 app.post('/usuarios',async (req, res) => {
     let nome = req.body.nome;
@@ -194,6 +221,10 @@ app.post('/respostas',async (req, res) => {
 })
 
 
-app.listen(port, () => {
+/* app.listen(port, () => {
   console.log(`Api rodando http://localhost:${port}/`);
-})
+}) */
+
+server.listen(port, () => {
+    console.log(`Api rodando http://localhost:${port}/`);
+  })
