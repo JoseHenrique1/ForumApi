@@ -30,7 +30,7 @@ app.use(express.json());
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: '*', 
+        origin: process.env.ORIGIN, 
     },
   });
   // origin: 'http://localhost:3001',
